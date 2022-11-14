@@ -3,15 +3,17 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plot
 import statsmodels.formula.api as smf
-import seaborn as sns
+import seaborn as sns 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report
 from mlxtend.plotting import plot_confusion_matrix
 from sklearn.metrics import confusion_matrix
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from mlxtend.classifier import OneRClassifier
 from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
 
 #Importar o cargar Dataset
 datos = pd.read_csv("./data_Clasificacion.csv", delimiter=";", engine='python')
@@ -88,6 +90,25 @@ data_clean['RENOVAR_LICENCIA'] = data_clean.apply(
 # Exportar el dataframe a un archivo csv
 data_clean.to_csv('./data_clasificacion_clean.csv', index=False)
 
+#MOSTRAR GRAFICAS PARA ANALISIS PRINCIPAL DE DATASET
+
+
+# Grafica de barras que muestra por genero cuantas colisiones MAX tuvo
+plot.bar(data_clean['GENERO'], data_clean['MAX(COLISION)'])
+plot.show()
+
+sns.scatterplot(x=data_clean['MAX(EXCESO VELOCIDAD (MIN))'], y=data_clean['MAX(MAXIMA VELOCIDAD (KM/H))'], data=data_clean)
+
+plot.bar(data_clean['EDAD'], data_clean['MAX(COLISION)'])
+plot.show()
+
+#Grafica de barras que muestra para la cantidad de colisiones cuantas frenadas hubo
+plot.bar(data_clean['MAX(COLISION)'],data_clean['MAX(FRENADAS (UNI))'])
+plot.show()
+
+plot.bar(data_clean['NIVEL_ESTUDIO'], data_clean['MAX(MAXIMA VELOCIDAD (KM/H))'])
+plot.show()
+
 
 #----------------------------------------------------------------
 #CLASIFICACION
@@ -95,12 +116,14 @@ data_clean.to_csv('./data_clasificacion_clean.csv', index=False)
 #Solo columnas de interes para el modelo
 data_classificacion = data_clean[['RENOVAR_LICENCIA', 'SINIESTROS_2016', 'SINIESTROS_2017', 'SINIESTROS_2018']]
 
+print(data_classificacion['RENOVAR_LICENCIA'])
+
 # Se dividen los datos en variables independientes X, y variable dependiente y (Renovado)
 X = data_classificacion.drop(['RENOVAR_LICENCIA'], axis=1).values
 Y = data_classificacion.RENOVAR_LICENCIA.values
 
 #Division de datos - Entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.4)
 
 # Crear el clasificador
 clasif = LogisticRegression()
@@ -183,9 +206,58 @@ print(classification_report(y_test, y_pred))
 
 #CLUSTERING K MEANS
 
+# Curva elbow para determinar valor óptimo de k.
+nc = range(1, 30) # El número de iteraciones que queremos hacer.
+kmeans = [KMeans(n_clusters=i) for i in nc]
+score = [kmeans[i].fit(data_classificacion).score(data_classificacion) for i in range(len(kmeans))]
+score
+plot.xlabel('Número de clústeres (k)')
+plot.ylabel('Suma de los errores cuadráticos')
+plot.plot(nc,score)
+plot.show()
 
-#RANDOM TREE FOREST
+kmeans = KMeans(n_clusters=5).fit(data_classificacion)
+centroids = kmeans.cluster_centers_
+print(centroids)
 
-#CURVAS LIFT - CURVAS ROC.SVM
+labels = kmeans.predict(data_classificacion)
+data_classificacion['label'] = labels
+
+# Plot k-means clustering.
+colores=['red','green','blue','yellow','fuchsia']
+asignar=[]
+for row in labels:
+     asignar.append(colores[row])
+plot.scatter(data_classificacion['SINIESTROS_2016'].values+data_classificacion['SINIESTROS_2017'].values+data_classificacion['SINIESTROS_2018'].values, Y, c=asignar, s=1)
+plot.scatter(centroids[:, 0], centroids[:, 1], marker='*', c='black', s=20) # Marco centroides.
+plot.xlabel('Close price')
+plot.ylabel('Volume')
+plot.title('Samsung stocks k-means clustering')
+plot.show()
+
+sns.scatterplot(x=data_classificacion['SINIESTROS_2016'].values, y=Y, data=data_classificacion)
 
 #FORMULAR Y TENER PRESENTE LA PREGUNTA DE CLASIFICACION Y DE ASOSIACION
+
+#Maquina soporte vectorial
+
+#Arbol bosques randomicos
+X = data_classificacion.drop(['RENOVAR_LICENCIA'], axis=1).values
+Y = data_classificacion.RENOVAR_LICENCIA.values
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+
+randomForest = RandomForestClassifier()
+
+randomForest.fit(X_train, y_train)
+
+randomForest.score(X_test, y_test)
+
+y_pred = randomForest.predict(X_test)
+matriz = confusion_matrix(y_test,y_pred)
+
+plot_confusion_matrix(conf_mat=matriz, figsize=(6,6), show_normed=False)
+plot.tight_layout()
+plot.show()
+
+# Mostrar características del modelo
+print(classification_report(y_test, y_pred))
