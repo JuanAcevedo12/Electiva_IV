@@ -97,6 +97,8 @@ data_clean.to_csv('./data_clasificacion_clean.csv', index=False)
 plot.bar(data_clean['GENERO'], data_clean['MAX(COLISION)'])
 plot.show()
 
+data_clean['MAX(EXCESO VELOCIDAD (MIN))'] = data_clean['MAX(EXCESO VELOCIDAD (MIN))'].astype('float')
+
 sns.scatterplot(x=data_clean['MAX(EXCESO VELOCIDAD (MIN))'], y=data_clean['MAX(MAXIMA VELOCIDAD (KM/H))'], data=data_clean)
 
 plot.bar(data_clean['EDAD'], data_clean['MAX(COLISION)'])
@@ -206,40 +208,64 @@ print(classification_report(y_test, y_pred))
 
 #CLUSTERING K MEANS
 
+data_clustering = data_clean.drop(['FECHA_NACIMIENTO'], axis=1)
+data_clustering = data_clustering.drop(['GENERO'], axis=1)
+data_clustering = data_clustering.drop(['ID'], axis=1)
+data_clustering = data_clustering.drop(['ESTADO_CIVIL'], axis=1)
+data_clustering = data_clustering.drop(['PROFESION'], axis=1)
+data_clustering = data_clustering.drop(['NIVEL_ESTUDIO'], axis=1)
+data_clustering = data_clustering.drop(['OCUPACION'], axis=1)
+data_clustering = data_clustering.drop(['SERVICIO'], axis=1)
+data_clustering = data_clustering.drop(['FECHA_LICENCIA'], axis=1)
+data_clustering = data_clustering.drop(['RELACION_ASEGURADO'], axis=1)
+data_clustering = data_clustering.drop(['COLOR'], axis=1)
+data_clustering = data_clustering.drop(['CIUDAD'], axis=1)
+data_clustering = data_clustering.drop(['MARCA'], axis=1)
+data_clustering = data_clustering.drop(['CLASE'], axis=1)
+data_clustering = data_clustering.drop(['TIPO'], axis=1)
+data_clustering = data_clustering.drop(['MODELO'], axis=1)
+
+print(data_clustering.info())
+
 # Curva elbow para determinar valor óptimo de k.
-nc = range(1, 30) # El número de iteraciones que queremos hacer.
+nc = range(1, 5) # El número de iteraciones que queremos hacer.
 kmeans = [KMeans(n_clusters=i) for i in nc]
-score = [kmeans[i].fit(data_classificacion).score(data_classificacion) for i in range(len(kmeans))]
-score
+score = [kmeans[i].fit(data_clustering).score(data_clustering) for i in range(len(kmeans))]
+print("SCORE= ", score)
 plot.xlabel('Número de clústeres (k)')
 plot.ylabel('Suma de los errores cuadráticos')
 plot.plot(nc,score)
 plot.show()
 
-kmeans = KMeans(n_clusters=5).fit(data_classificacion)
+kmeans = KMeans(n_clusters=5).fit(data_clustering)
 centroids = kmeans.cluster_centers_
 print(centroids)
 
-labels = kmeans.predict(data_classificacion)
-data_classificacion['label'] = labels
+labels = kmeans.predict(data_clustering)
+data_clustering['label'] = labels
 
 # Plot k-means clustering.
 colores=['red','green','blue','yellow','fuchsia']
 asignar=[]
 for row in labels:
      asignar.append(colores[row])
-plot.scatter(data_classificacion['SINIESTROS_2016'].values+data_classificacion['SINIESTROS_2017'].values+data_classificacion['SINIESTROS_2018'].values, Y, c=asignar, s=1)
+plot.scatter(data_clustering['RENOVAR_LICENCIA'].values, data_clustering['MEAN(COLISION)'], c=asignar, s=1)
 plot.scatter(centroids[:, 0], centroids[:, 1], marker='*', c='black', s=20) # Marco centroides.
 plot.xlabel('Close price')
 plot.ylabel('Volume')
 plot.title('Samsung stocks k-means clustering')
 plot.show()
 
+plot.bar(data_clean['MAX(COLISION)'],data_clean['MAX(FRENADAS (UNI))'])
+plot.show()
+
 sns.scatterplot(x=data_classificacion['SINIESTROS_2016'].values, y=Y, data=data_classificacion)
 
-#FORMULAR Y TENER PRESENTE LA PREGUNTA DE CLASIFICACION Y DE ASOSIACION
+
 
 #Maquina soporte vectorial
+
+
 
 #Arbol bosques randomicos
 X = data_classificacion.drop(['RENOVAR_LICENCIA'], axis=1).values
